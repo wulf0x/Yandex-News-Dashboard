@@ -1,0 +1,51 @@
+name: Update Yandex News Data
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:      
+
+jobs:
+  update-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      - name: Fetch news data
+        run: |
+          if [ -f scripts/fetch_news.py ]; then
+            python scripts/fetch_news.py
+          else
+            echo "fetch_news.py not found, skipping"
+          fi
+
+      - name: Process news data
+        run: |
+          if [ -f scripts/process_news.py ]; then
+            python scripts/process_news.py
+          else
+            echo "process_news.py not found, skipping"
+          fi
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          git add data/ reports/ || true
+          git commit -m "Автообновление данных новостей" || echo "No changes to commit"
+          git push
